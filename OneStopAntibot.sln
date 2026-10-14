@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OneStopAntibot", "src\OneStopAntibot\OneStopAntibot.csproj", "{51A31530-9AA4-4D94-88BE-76730CA15B9C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{B36A84DF-456D-A817-6EDD-3EC3E7F6E11F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpCloak", "examples\HttpCloak\HttpCloak.csproj", "{2D5E8281-751A-4A47-984C-C6DDD4E98346}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TlsClient", "examples\TlsClient\TlsClient.csproj", "{EEF4C29B-526C-4659-BE63-831E675349F8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{51A31530-9AA4-4D94-88BE-76730CA15B9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51A31530-9AA4-4D94-88BE-76730CA15B9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51A31530-9AA4-4D94-88BE-76730CA15B9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51A31530-9AA4-4D94-88BE-76730CA15B9C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D5E8281-751A-4A47-984C-C6DDD4E98346}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D5E8281-751A-4A47-984C-C6DDD4E98346}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D5E8281-751A-4A47-984C-C6DDD4E98346}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D5E8281-751A-4A47-984C-C6DDD4E98346}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EEF4C29B-526C-4659-BE63-831E675349F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EEF4C29B-526C-4659-BE63-831E675349F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EEF4C29B-526C-4659-BE63-831E675349F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EEF4C29B-526C-4659-BE63-831E675349F8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{51A31530-9AA4-4D94-88BE-76730CA15B9C} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{2D5E8281-751A-4A47-984C-C6DDD4E98346} = {B36A84DF-456D-A817-6EDD-3EC3E7F6E11F}
+		{EEF4C29B-526C-4659-BE63-831E675349F8} = {B36A84DF-456D-A817-6EDD-3EC3E7F6E11F}
+	EndGlobalSection
+EndGlobal

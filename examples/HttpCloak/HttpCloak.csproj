@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Examples</RootNamespace>
+    <AssemblyName>HttpCloak.Examples</AssemblyName>
+    <PackageId>HttpCloak.Examples</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HttpCloak" Version="1.7.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OneStopAntibot\OneStopAntibot.csproj" />
+  </ItemGroup>
+
+</Project>

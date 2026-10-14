@@ -1,0 +1,31 @@
+# Build output
+bin/
+obj/
+artifacts/
+*.nupkg
+*.snupkg
+
+# Coverage and logs
+TestResults/
+coverage*.xml
+*.log
+
+# Environment
+.env
+.env.*
+
+# IDE and OS
+.vs/
+.idea/
+.vscode/
+*.user
+*.swp
+.DS_Store
+Thumbs.db
+
+# tls-client native library (see examples/TlsClient/HttpClientWrapper.cs)
+/examples/TlsClient/native/
+
+# Local only
+/SCHEMAS.md
+/schemas/
