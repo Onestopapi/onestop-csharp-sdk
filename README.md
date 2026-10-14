@@ -5,8 +5,7 @@ C# client for the [OneStop Antibot](https://onestopantibot.com) API. The SDK cal
 ## Install
 
 ```sh
-git clone https://github.com/Onestopapi/onestop-csharp-sdk.git
-dotnet add reference onestop-csharp-sdk/src/OneStopAntibot/OneStopAntibot.csproj
+dotnet add package OneStopAntibot
 ```
 
 Targets .NET 8+.
