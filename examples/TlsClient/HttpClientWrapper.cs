@@ -26,7 +26,7 @@ public sealed record Response(int Status, string Url, string Body, byte[] Conten
 
 public sealed class HttpClientWrapper
 {
-    // Chrome 152 on Windows. Every header set in Headers is in Chrome's order.
+    // Chrome 152 on Windows. Every header set in Headers is in Chrome's order; check them against your browser on your site.
     public const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36";
 
     // The bogdanfinn/tls-client library for your platform, relative to the directory you run from (examples/TlsClient).

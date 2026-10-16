@@ -28,6 +28,21 @@ var res = await session.AkamaiSensorAsync(new AkamaiSensorCall { Abck = abck, Bm
 // POST res.Payload as sensor_data; send res.Context on the next call.
 ```
 
+## Header order
+
+Sites check header names and their order. Send the headers your browser sends, in its order, and set the order explicitly in your TLS client:
+
+```csharp
+// TlsClient
+var request = new RequestBuilder().WithUrl(url).WithMethod(HttpMethod.Get)
+    .WithHeader("user-agent", userAgent).WithHeader("accept", "*/*")
+    .WithHeaderOrder(["user-agent", "accept"]);
+
+// HttpCloak
+session.RequestBinary("GET", url, [], new Dictionary<string, string> { ["user-agent"] = userAgent, ["accept"] = "*/*" },
+    headerOrder: ["user-agent", "accept"]);
+```
+
 See [examples/](examples) for full flows per product and TLS client.
 
 Documentation: [onestopantibot.com/dashboard/docs](https://onestopantibot.com/dashboard/docs)
