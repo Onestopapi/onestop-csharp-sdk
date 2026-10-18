@@ -10,7 +10,7 @@ Products: Akamai (sensor, SBSD, Pixel, sec-cpt), DataDome (tags, interstitial, s
 dotnet add package OneStopAntibot
 ```
 
-Requires .NET 8+. Reference: [nuget.org/packages/OneStopAntibot](https://www.nuget.org/packages/OneStopAntibot).
+Requires .NET 8+. Package: [NuGet](https://www.nuget.org/packages/OneStopAntibot).
 
 ## Quick start
 
