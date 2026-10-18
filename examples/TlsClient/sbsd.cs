@@ -13,7 +13,7 @@ namespace Examples;
 public static class Sbsd
 {
     private const string apiKey = "YOUR_API_KEY";
-    private const string identifier = ""; // your identifier or account name
+    private const string identifier = "YOUR_IDENTIFIER"; // your identifier or account name
     private const string pageUrl = "https://www.example.com/";
     private const string acceptLanguage = "de-DE,de;q=0.9";
 

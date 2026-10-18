@@ -2,14 +2,15 @@
 
 C# client for the [OneStop Antibot](https://onestopantibot.com) API. The SDK calls `/generate` and returns typed results; your application fetches the target pages and scripts and sends the generated payloads.
 
+Products: Akamai (sensor, SBSD, Pixel, sec-cpt), DataDome (tags, interstitial, slider), Cloudflare (WAF, Turnstile, JSD, precursor), Kasada (p.js, /tl, CD header), Imperva (reese84).
+
 ## Install
 
 ```sh
-git clone https://github.com/Onestopapi/onestop-csharp-sdk.git
-dotnet add reference onestop-csharp-sdk/src/OneStopAntibot/OneStopAntibot.csproj
+dotnet add package OneStopAntibot
 ```
 
-Targets .NET 8+.
+Requires .NET 8+. Reference: [nuget.org/packages/OneStopAntibot](https://www.nuget.org/packages/OneStopAntibot).
 
 ## Quick start
 
@@ -17,7 +18,7 @@ Targets .NET 8+.
 var client = new OneStopClient(new OneStopOptions
 {
     ApiKey = "YOUR_API_KEY",
-    Identifier = "", // your identifier or account name
+    Identifier = "YOUR_IDENTIFIER", // your identifier or account name
 });
 var ip = await client.GetIpAsync(); // set OneStopOptions.IpHttpClient to your proxy so this is the proxy's IP
 var session = client.Session(new SessionOptions
@@ -30,7 +31,7 @@ var res = await session.AkamaiSensorAsync(new AkamaiSensorCall { Abck = abck, Bm
 
 ## Header order
 
-Sites check header names and their order. Send the headers your browser sends, in its order, and set the order explicitly in your TLS client:
+Copy each request's header names, values and order from a browser recording (DevTools, powhttp, Charles) of that request, and set the order explicitly in your TLS client; the examples' headers only show how:
 
 ```csharp
 // TlsClient
@@ -43,6 +44,6 @@ session.RequestBinary("GET", url, [], new Dictionary<string, string> { ["user-ag
     headerOrder: ["user-agent", "accept"]);
 ```
 
-See [examples/](examples) for full flows per product and TLS client.
+See [examples/](https://github.com/Onestopapi/onestop-csharp-sdk/tree/main/examples) for full flows per product and TLS client.
 
 Documentation: [onestopantibot.com/dashboard/docs](https://onestopantibot.com/dashboard/docs)

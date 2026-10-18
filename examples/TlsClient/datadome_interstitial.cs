@@ -12,7 +12,7 @@ namespace Examples;
 public static class DatadomeInterstitial
 {
     private const string apiKey = "YOUR_API_KEY";
-    private const string identifier = ""; // your identifier or account name
+    private const string identifier = "YOUR_IDENTIFIER"; // your identifier or account name
     private const string pageUrl = "https://www.example.com/";
     private const string acceptLanguage = "en-US,en;q=0.9";
 
@@ -46,11 +46,11 @@ public static class DatadomeInterstitial
     {
         var hc = new HttpClientWrapper(proxy);
         var (client, ip) = await NewClient();
-        var session = NewSession(client, ip, pageUrl);
         var (page, dd) = GetBlockedPage(hc);
-        var (geoUrl, geo) = await GetChallengePage(hc, dd);
+        var session = NewSession(client, ip, page.Url);
+        var (geoUrl, geo) = await GetChallengePage(hc, page, dd);
         await SolveInterstitial(hc, session, page, geoUrl, geo);
-        var status = ReloadPage(hc);
+        var status = ReloadPage(hc, page);
         SiteFirewall(hc, pageUrl);
         Console.WriteLine("PASS interstitial view redirect, page re-GET " + status);
     }
@@ -92,9 +92,9 @@ public static class DatadomeInterstitial
         return (page, dd);
     }
 
-    private static async Task<(string GeoUrl, Response Geo)> GetChallengePage(HttpClientWrapper hc, Challenge dd)
+    private static async Task<(string GeoUrl, Response Geo)> GetChallengePage(HttpClientWrapper hc, Response page, Challenge dd)
     {
-        var geoUrl = $"{GeoOrigin}/interstitial/?initialCid={Uri.EscapeDataString(dd.Cid)}&hash={Uri.EscapeDataString(dd.Hash)}&cid={Uri.EscapeDataString(dd.Cookie)}&referer={Uri.EscapeDataString(pageUrl)}&s={dd.S}";
+        var geoUrl = $"{GeoOrigin}/interstitial/?initialCid={Uri.EscapeDataString(dd.Cid)}&hash={Uri.EscapeDataString(dd.Hash)}&cid={Uri.EscapeDataString(dd.Cookie)}&referer={Uri.EscapeDataString(page.Url)}&s={dd.S}";
         if (dd.E != "")
         {
             geoUrl += "&e=" + Uri.EscapeDataString(dd.E);
@@ -103,7 +103,7 @@ public static class DatadomeInterstitial
 
         // These pauses are browser pacing between the challenge requests, not the API's sleep.
         await Task.Delay(400);
-        var geo = hc.Get(geoUrl, Headers.Frame(acceptLanguage, "cross-site", pageUrl).StorageAccess());
+        var geo = hc.Get(geoUrl, Headers.Frame(acceptLanguage, "cross-site", page.Url).StorageAccess());
         if (geo.Status != 200)
         {
             throw new Exception($"FAIL interstitial page returned {geo.Status}");
@@ -141,14 +141,14 @@ public static class DatadomeInterstitial
         }
         // reply.Cookie is the datadome Set-Cookie line.
         var jar = new CookieContainer();
-        jar.SetCookies(new Uri(pageUrl), reply.Cookie);
+        jar.SetCookies(new Uri(page.Url), reply.Cookie);
         var cookie = jar.GetAllCookies()["datadome"]!;
         hc.SetCookie(cookie.Domain, cookie.Name, cookie.Value);
     }
 
-    private static int ReloadPage(HttpClientWrapper hc)
+    private static int ReloadPage(HttpClientWrapper hc, Response page)
     {
-        var again = hc.Get(pageUrl, Headers.Navigate(acceptLanguage, pageUrl));
+        var again = hc.Get(page.Url, Headers.Navigate(acceptLanguage, page.Url));
         if (again.Status != 200 && again.Status != 302)
         {
             throw new Exception($"FAIL page re-GET returned {again.Status}");

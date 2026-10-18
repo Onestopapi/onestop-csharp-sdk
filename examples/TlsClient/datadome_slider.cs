@@ -12,7 +12,7 @@ namespace Examples;
 public static class DatadomeSlider
 {
     private const string apiKey = "YOUR_API_KEY";
-    private const string identifier = ""; // your identifier or account name
+    private const string identifier = "YOUR_IDENTIFIER"; // your identifier or account name
     private const string pageUrl = "https://www.example.com/events/example";
     private const string acceptLanguage = "en-GB,en;q=0.9";
 
@@ -45,11 +45,11 @@ public static class DatadomeSlider
     {
         var hc = new HttpClientWrapper(proxy);
         var (client, ip) = await NewClient();
-        var session = NewSession(client, ip, pageUrl);
         var (page, dd) = GetBlockedPage(hc);
-        var (geoUrl, geo) = GetChallengePage(hc, dd);
+        var session = NewSession(client, ip, page.Url);
+        var (geoUrl, geo) = GetChallengePage(hc, page, dd);
         await SolveSlider(hc, session, page, geoUrl, geo);
-        var status = ReloadPage(hc);
+        var status = ReloadPage(hc, page);
         SiteFirewall(hc, pageUrl);
         Console.WriteLine("PASS captcha check cookie, page re-GET " + status);
     }
@@ -91,16 +91,16 @@ public static class DatadomeSlider
         return (page, dd);
     }
 
-    private static (string GeoUrl, Response Geo) GetChallengePage(HttpClientWrapper hc, Challenge dd)
+    private static (string GeoUrl, Response Geo) GetChallengePage(HttpClientWrapper hc, Response page, Challenge dd)
     {
-        var geoUrl = $"{GeoOrigin}/captcha/?initialCid={Uri.EscapeDataString(dd.Cid)}&hash={Uri.EscapeDataString(dd.Hash)}&cid={Uri.EscapeDataString(dd.Cookie)}&t={dd.T}&referer={Uri.EscapeDataString(pageUrl)}&s={dd.S}";
+        var geoUrl = $"{GeoOrigin}/captcha/?initialCid={Uri.EscapeDataString(dd.Cid)}&hash={Uri.EscapeDataString(dd.Hash)}&cid={Uri.EscapeDataString(dd.Cookie)}&t={dd.T}&referer={Uri.EscapeDataString(page.Url)}&s={dd.S}";
         if (dd.E != "")
         {
             geoUrl += "&e=" + Uri.EscapeDataString(dd.E);
         }
         geoUrl += "&dm=cd";
 
-        var origin = new Uri(pageUrl).GetLeftPart(UriPartial.Authority);
+        var origin = new Uri(page.Url).GetLeftPart(UriPartial.Authority);
         var geo = hc.Get(geoUrl, Headers.Frame(acceptLanguage, "cross-site", origin + "/").StorageAccess());
         if (geo.Status != 200 || !ChallengePath.IsMatch(geo.Body))
         {
@@ -152,14 +152,14 @@ public static class DatadomeSlider
         }
         // reply.Cookie is the datadome Set-Cookie line.
         var jar = new CookieContainer();
-        jar.SetCookies(new Uri(pageUrl), reply.Cookie);
+        jar.SetCookies(new Uri(page.Url), reply.Cookie);
         var cookie = jar.GetAllCookies()["datadome"]!;
         hc.SetCookie(cookie.Domain, cookie.Name, cookie.Value);
     }
 
-    private static int ReloadPage(HttpClientWrapper hc)
+    private static int ReloadPage(HttpClientWrapper hc, Response page)
     {
-        var again = hc.Get(pageUrl, Headers.Navigate(acceptLanguage, pageUrl));
+        var again = hc.Get(page.Url, Headers.Navigate(acceptLanguage, page.Url));
         if (again.Status != 200 && again.Status != 302)
         {
             throw new Exception($"FAIL page re-GET returned {again.Status}");

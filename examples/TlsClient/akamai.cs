@@ -12,7 +12,7 @@ namespace Examples;
 public static class Akamai
 {
     private const string apiKey = "YOUR_API_KEY";
-    private const string identifier = ""; // your identifier or account name
+    private const string identifier = "YOUR_IDENTIFIER"; // your identifier or account name
     private const string pageUrl = "https://www.example.com/";
     private const string acceptLanguage = "en-US,en;q=0.9";
 
@@ -120,8 +120,8 @@ public static class Akamai
             {
                 throw new Exception($"FAIL sensor POST returned {post.Status}");
             }
-            // Accepted: _abck contains ~0~ or the reply is the 17-byte ack.
-            if (hc.Cookie(page.Url, "_abck").Contains("~0~") || post.Content.Length == 17)
+            // Accepted: _abck contains ~0~ or the reply is exactly {"success": true}.
+            if (hc.Cookie(page.Url, "_abck").Contains("~0~") || post.Content.AsSpan().SequenceEqual("{\"success\": true}"u8))
             {
                 return;
             }

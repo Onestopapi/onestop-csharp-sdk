@@ -1,6 +1,7 @@
 // Kasada: load the page and its p.js, then mfc, fp (429) and ips.js, and
 // POST the generated /tl body. A page that is already the 429 block page
-// links ips.js itself. /tl answers 200 with reload:true.
+// links ips.js itself. /tl answers 200 with reload:true. Then build the
+// x-kpsdk-cd header locally and make one protected POST.
 using System.Text.RegularExpressions;
 using OneStop;
 
@@ -9,8 +10,10 @@ namespace Examples;
 public static class Kasada
 {
     private const string apiKey = "YOUR_API_KEY";
-    private const string identifier = ""; // your identifier or account name
+    private const string identifier = "YOUR_IDENTIFIER"; // your identifier or account name
     private const string pageUrl = "https://www.example.com/";
+    private const string protectedUrl = "https://www.example.com/api/protected"; // a request Kasada protects
+    private const string protectedBody = "{}"; // its JSON body
     private const string acceptLanguage = "en-US,en;q=0.9";
 
     private const string proxy = ""; // your proxy, in the site's country
@@ -25,12 +28,16 @@ public static class Kasada
     {
         var hc = new HttpClientWrapper(proxy);
         var (client, ip) = await NewClient();
-        var session = NewSession(client, ip, pageUrl);
         var page = GetPage(hc);
-        var script = await GetIps(hc, session, page);
-        await PostTl(hc, session, page, script);
+        var session = NewSession(client, ip, page.Url);
+        var basePath = FindBase(page);
+        var ps = await GetPScript(hc, session, page, basePath);
+        var (script, h) = GetIps(hc, page, basePath, ps);
+        var tl = await PostTl(hc, session, page, script);
+        var cd = BuildCdHeader(ps, tl);
+        PostProtected(hc, page, ps, tl, h, cd);
         SiteFirewall(hc, pageUrl);
-        Console.WriteLine("PASS /tl 200 reload:true");
+        Console.WriteLine("PASS /tl 200 reload:true, protected request 200");
     }
 
     private static async Task<(OneStopClient Client, string Ip)> NewClient()
@@ -56,15 +63,43 @@ public static class Kasada
 
     private static Response GetPage(HttpClientWrapper hc) => hc.Get(pageUrl, Headers.Navigate(acceptLanguage, ""));
 
-    // Loads ips.js. When the page itself is the 429 block page it links ips.js
-    // directly; otherwise p.js, mfc and fp lead to it.
-    private static async Task<Ips> GetIps(HttpClientWrapper hc, Session session, Response page)
+    private static bool IsBlockPage(Response page) => page.Status == 429 && IpsScript.IsMatch(page.Body);
+
+    // Returns the script directory: p.js, mfc, fp, ips.js and tl sit in it. A
+    // block page links ips.js there; any other page links p.js.
+    private static string FindBase(Response page)
     {
-        var from = page;
-        if (page.Status != 429 || !IpsScript.IsMatch(page.Body))
+        if (IsBlockPage(page))
         {
-            var (basePath, version) = await GetPScript(hc, session, page);
-            from = GetFp(hc, page, basePath, version);
+            var ipsUrl = IpsUrlFrom(page);
+            return ipsUrl[..ipsUrl.IndexOf("ips.js", StringComparison.Ordinal)];
+        }
+        // p.js lives at /<uuid>/<uuid>/p.js.
+        // Some pages write the path JSON-escaped (`\/` or `\u002f` for `/`).
+        var match = PjsPath.Match(page.Body.Replace(@"\/", "/").Replace(@"\u002f", "/"));
+        if (!match.Success)
+        {
+            throw new Exception($"FAIL page returned {page.Status} without a Kasada p.js");
+        }
+        return new Uri(page.Url).GetLeftPart(UriPartial.Authority) + match.Value[..^"p.js".Length];
+    }
+
+    // Loads p.js. Keep the result: x-kpsdk-v goes on the Kasada requests and
+    // the CD header is built from it.
+    private static async Task<KasadaPScriptResponse> GetPScript(HttpClientWrapper hc, Session session, Response page, string basePath)
+    {
+        var pjs = hc.Get(basePath + "p.js", Headers.Script(acceptLanguage, "same-origin", page.Url));
+        return await session.KasadaPScriptAsync(pjs.Body);
+    }
+
+    // Loads ips.js and returns it with the x-kpsdk-h from mfc. A block page
+    // links it directly (no mfc); otherwise mfc and fp lead to it.
+    private static (Ips Script, string H) GetIps(HttpClientWrapper hc, Response page, string basePath, KasadaPScriptResponse ps)
+    {
+        var (from, h) = (page, "");
+        if (!IsBlockPage(page))
+        {
+            (from, h) = GetFp(hc, page, basePath, ps.Headers["x-kpsdk-v"]);
         }
         var ipsUrl = IpsUrlFrom(from);
         var res = hc.Get(ipsUrl, Headers.Script(acceptLanguage, "same-origin", from.Url));
@@ -72,27 +107,12 @@ public static class Kasada
         {
             throw new Exception($"FAIL ips.js returned {res.Status}");
         }
-        return new Ips(ipsUrl, res.Body, from.Url);
+        return (new Ips(ipsUrl, res.Body, from.Url), h);
     }
 
-    // Returns the script directory and x-kpsdk-v from the p.js result.
-    private static async Task<(string BasePath, string Version)> GetPScript(HttpClientWrapper hc, Session session, Response page)
-    {
-        // p.js lives at /<uuid>/<uuid>/p.js; mfc, fp, ips.js and tl sit next to it.
-        // Some pages write the path JSON-escaped (\/ or \u002f for /).
-        var match = PjsPath.Match(page.Body.Replace(@"\/", "/").Replace(@"\u002f", "/"));
-        if (!match.Success)
-        {
-            throw new Exception($"FAIL page returned {page.Status} without a Kasada p.js");
-        }
-        var basePath = new Uri(page.Url).GetLeftPart(UriPartial.Authority) + match.Value[..^"p.js".Length];
-        var pjs = hc.Get(basePath + "p.js", Headers.Script(acceptLanguage, "same-origin", page.Url));
-        var ps = await session.KasadaPScriptAsync(pjs.Body);
-        return (basePath, ps.Headers["x-kpsdk-v"]);
-    }
-
-    // Loads mfc and fp. fp answers 429 with a body that links ips.js.
-    private static Response GetFp(HttpClientWrapper hc, Response page, string basePath, string version)
+    // Loads mfc and fp and returns fp with mfc's x-kpsdk-h, which the
+    // protected requests carry. fp answers 429 with a body that links ips.js.
+    private static (Response Fp, string H) GetFp(HttpClientWrapper hc, Response page, string basePath, string version)
     {
         var mfc = hc.Get(basePath + "mfc", Headers.KasadaMfc(acceptLanguage, version, page.Url));
         if (mfc.Status != 200)
@@ -104,14 +124,14 @@ public static class Kasada
         {
             throw new Exception("FAIL fp returned no ips.js");
         }
-        return fp;
+        return (fp, mfc.Header("x-kpsdk-h"));
     }
 
     // Returns the ips.js src a Kasada 429 body links, HTML-unescaped and
     // resolved against the response URL.
     private static string IpsUrlFrom(Response res) => res.Resolve(IpsScript.Match(res.Body).Groups[1].Value).AbsoluteUri;
 
-    private static async Task PostTl(HttpClientWrapper hc, Session session, Response page, Ips script)
+    private static async Task<Response> PostTl(HttpClientWrapper hc, Session session, Response page, Ips script)
     {
         var tl = await session.KasadaTlAsync(script.Url, script.Source);
         var origin = new Uri(page.Url).GetLeftPart(UriPartial.Authority);
@@ -121,6 +141,35 @@ public static class Kasada
         if (res.Status != 200 || !res.Body.Contains("\"reload\":true"))
         {
             throw new Exception($"FAIL /tl returned {res.Status}: {res.Body}");
+        }
+        return res;
+    }
+
+    // Builds x-kpsdk-cd locally (no API call) from the p.js result and the /tl
+    // response's x-kpsdk-ct and x-kpsdk-st.
+    private static string BuildCdHeader(KasadaPScriptResponse ps, Response tl)
+    {
+        var st = long.Parse(tl.Header("x-kpsdk-st")); // ms
+        return ps.CdHeader(tl.Header("x-kpsdk-ct"), st);
+    }
+
+    // The request Kasada protects, a POST as most are: x-kpsdk-ct (the newest
+    // one seen, here from /tl), x-kpsdk-v from p.js, x-kpsdk-h from mfc and
+    // the CD header just built. Each protected POST gets a fresh CD header.
+    private static void PostProtected(HttpClientWrapper hc, Response page, KasadaPScriptResponse ps, Response tl, string h, string cd)
+    {
+        var origin = new Uri(page.Url).GetLeftPart(UriPartial.Authority);
+        var headers = Headers.Post(acceptLanguage, "application/json", origin, page.Url).With(new Dictionary<string, string>
+        {
+            ["x-kpsdk-ct"] = tl.Header("x-kpsdk-ct"),
+            ["x-kpsdk-cd"] = cd,
+            ["x-kpsdk-h"] = h,
+            ["x-kpsdk-v"] = ps.Headers["x-kpsdk-v"],
+        });
+        var res = hc.Post(protectedUrl, headers, protectedBody);
+        if (res.Status != 200)
+        {
+            throw new Exception($"FAIL protected request returned {res.Status}");
         }
     }
 

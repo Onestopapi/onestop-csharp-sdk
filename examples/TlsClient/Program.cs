@@ -10,6 +10,7 @@ Func<Task>? example = args.FirstOrDefault() switch
     "cloudflare_precursor" => CloudflarePrecursor.Run,
     "cloudflare_turnstile" => CloudflareTurnstile.Run,
     "kasada" => Kasada.Run,
+    "imperva" => Imperva.Run,
     _ => null,
 };
 if (example == null)

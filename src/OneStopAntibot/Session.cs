@@ -169,6 +169,19 @@ public sealed class Session
             Script = script,
         }, cancellationToken);
 
+    /// <summary>Generates the reese84 POST body from the challenge script's URL and raw source.</summary>
+    public Task<ImpervaResponse> ImpervaAsync(string scriptUrl, string script, CancellationToken cancellationToken = default) =>
+        Generate<ImpervaResponse>("Imperva", "imperva", new ImpervaWire
+        {
+            Site = Wire.Omit(Site),
+            UserAgent = Wire.Omit(UserAgent),
+            AcceptLanguage = Wire.Omit(AcceptLanguage),
+            Ip = Wire.Omit(Ip),
+            Referer = Wire.Omit(Referer),
+            ScriptUrl = scriptUrl,
+            Script = script,
+        }, cancellationToken);
+
     private Task<CloudflareResponse> Cloudflare(string mode, CloudflareCall call, CancellationToken cancellationToken) =>
         Generate<CloudflareResponse>(mode, "cloudflare", new CloudflareWire
         {
@@ -180,7 +193,7 @@ public sealed class Session
             Html = Wire.Omit(call.Html),
             Script = Wire.Omit(call.Script),
             ScriptUrl = Wire.Omit(call.ScriptUrl),
-            Response = call.Response,
+            Response = Wire.Sorted(call.Response),
             Context = Wire.Omit(call.Context),
             RayId = Wire.Omit(call.RayId),
             BytecodeRayId = Wire.Omit(call.BytecodeRayId),

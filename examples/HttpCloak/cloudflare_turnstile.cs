@@ -8,7 +8,7 @@ namespace Examples;
 public static class CloudflareTurnstile
 {
     private const string apiKey = "YOUR_API_KEY";
-    private const string identifier = ""; // your identifier or account name
+    private const string identifier = "YOUR_IDENTIFIER"; // your identifier or account name
     private const string pageUrl = "https://www.example.com/event";
     private const string siteKey = "YOUR_TURNSTILE_SITE_KEY"; // from the page's turnstile.render options
     private const string action = "YOUR_TURNSTILE_ACTION";
@@ -21,9 +21,10 @@ public static class CloudflareTurnstile
     {
         var hc = new HttpClientWrapper(proxy);
         var (client, ip) = await NewClient();
-        var session = NewSession(client, ip, pageUrl);
-        var first = GetChallengePage(hc);
-        var token = await RunChallengeLoop(hc, session, first);
+        var page = GetPage(hc);
+        var session = NewSession(client, ip, page.Url);
+        var first = GetChallengePage(hc, page);
+        var token = await RunChallengeLoop(hc, session, page, first);
         SiteFirewall(hc, pageUrl, token);
         Console.WriteLine("PASS Turnstile token returned");
     }
@@ -49,12 +50,13 @@ public static class CloudflareTurnstile
         Ip = ip,
     });
 
+    private static Response GetPage(HttpClientWrapper hc) => hc.Get(pageUrl, Headers.Navigate(acceptLanguage, ""));
+
     // Returns the first call: the widget iframe, its final URL and its cf-ray
     // header.
-    private static CloudflareCall GetChallengePage(HttpClientWrapper hc)
+    private static CloudflareCall GetChallengePage(HttpClientWrapper hc, Response page)
     {
-        var page = new Uri(pageUrl);
-        var api = hc.Get("https://challenges.cloudflare.com/turnstile/v0/api.js", Headers.Script(acceptLanguage, "cross-site", page.GetLeftPart(UriPartial.Authority) + "/").StorageAccess());
+        var api = hc.Get("https://challenges.cloudflare.com/turnstile/v0/api.js", Headers.Script(acceptLanguage, "cross-site", new Uri(page.Url).GetLeftPart(UriPartial.Authority) + "/").StorageAccess());
         // api.js redirects to /turnstile/v0/<mode>/<version>/api.js.
         var segments = new Uri(api.Url).AbsolutePath.Split('/');
         if (segments.Length != 6)
@@ -83,7 +85,7 @@ public static class CloudflareTurnstile
 
     // Sends each step's requests; each reply goes back on the next call, by its
     // purpose, until the API returns the token.
-    private static async Task<string> RunChallengeLoop(HttpClientWrapper hc, Session session, CloudflareCall call)
+    private static async Task<string> RunChallengeLoop(HttpClientWrapper hc, Session session, Response page, CloudflareCall call)
     {
         var frameUrl = call.IframeUrl;
         var step = await session.CloudflareTurnstileAsync(call);
@@ -92,7 +94,7 @@ public static class CloudflareTurnstile
             var next = new CloudflareCall { Context = step.Context, Action = action, CData = cData };
             foreach (var r in step.Requests)
             {
-                var res = hc.Do(r.Method, r.Url, Headers.Cloudflare(r, acceptLanguage, pageUrl, frameUrl), r.Body);
+                var res = hc.Do(r.Method, r.Url, Headers.Cloudflare(r, acceptLanguage, page.Url, frameUrl), r.Body);
                 switch (r.Purpose)
                 {
                     case "challenge":

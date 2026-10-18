@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -23,6 +24,17 @@ internal static class Wire
     };
 
     public static string? Omit(string value) => value is "" ? null : value;
+
+    // Maps are encoded with their keys in Go's order (UTF-8 bytes, not UTF-16 ordinal) at every depth.
+    public static object? Sorted(object? value) => value switch
+    {
+        IDictionary map => new SortedDictionary<string, object?>(map.Keys.Cast<string>().ToDictionary(key => key, key => Sorted(map[key])), KeyOrder),
+        IEnumerable<object?> list => list.Select(Sorted).ToList(),
+        _ => value,
+    };
+
+    private static readonly Comparer<string> KeyOrder =
+        Comparer<string>.Create((a, b) => Encoding.UTF8.GetBytes(a).AsSpan().SequenceCompareTo(Encoding.UTF8.GetBytes(b)));
 
     // Escapes only control characters, " and \, and U+2028 and U+2029; <, > and & stay as they are.
     private sealed class WireEncoder : JavaScriptEncoder
@@ -249,5 +261,16 @@ internal sealed class KasadaTlWire
     public string? AcceptLanguage { get; init; }
     public string? Ip { get; init; }
     public string IpsUrl { get; init; } = "";
+    public string Script { get; init; } = "";
+}
+
+internal sealed class ImpervaWire
+{
+    public string? Site { get; init; }
+    public string? UserAgent { get; init; }
+    public string? AcceptLanguage { get; init; }
+    public string? Ip { get; init; }
+    public string? Referer { get; init; }
+    public string ScriptUrl { get; init; } = "";
     public string Script { get; init; } = "";
 }

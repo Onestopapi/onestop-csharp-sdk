@@ -11,7 +11,7 @@ namespace Examples;
 public static class CloudflarePrecursor
 {
     private const string apiKey = "YOUR_API_KEY";
-    private const string identifier = ""; // your identifier or account name
+    private const string identifier = "YOUR_IDENTIFIER"; // your identifier or account name
     private const string pageUrl = "https://www.example.com/";
     private const string acceptLanguage = "en-US,en;q=0.9";
 

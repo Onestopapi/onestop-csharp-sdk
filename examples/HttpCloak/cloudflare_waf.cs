@@ -10,7 +10,7 @@ namespace Examples;
 public static class CloudflareWaf
 {
     private const string apiKey = "YOUR_API_KEY";
-    private const string identifier = ""; // your identifier or account name
+    private const string identifier = "YOUR_IDENTIFIER"; // your identifier or account name
     private const string pageUrl = "https://www.example.com/login";
     private const string acceptLanguage = "en-US,en;q=0.9";
 
@@ -23,9 +23,9 @@ public static class CloudflareWaf
     {
         var hc = new HttpClientWrapper(proxy);
         var (client, ip) = await NewClient();
-        var session = NewSession(client, ip, pageUrl);
-        var first = GetChallengePage(hc);
-        await RunChallengeLoop(hc, session, first);
+        var (page, first) = GetChallengePage(hc);
+        var session = NewSession(client, ip, page.Url);
+        await RunChallengeLoop(hc, session, page, first);
         SiteFirewall(hc, pageUrl);
         Console.WriteLine("PASS cf_clearance set");
     }
@@ -51,8 +51,8 @@ public static class CloudflareWaf
         Ip = ip,
     });
 
-    // Returns the first call: the challenge page and its script.
-    private static CloudflareCall GetChallengePage(HttpClientWrapper hc)
+    // Returns the page and the first call: the challenge page and its script.
+    private static (Response Page, CloudflareCall First) GetChallengePage(HttpClientWrapper hc)
     {
         var page = hc.Get(pageUrl, Headers.Navigate(acceptLanguage, ""));
         // The challenge page has the script path (src = '...') and the
@@ -64,13 +64,13 @@ public static class CloudflareWaf
             throw new Exception($"FAIL page returned {page.Status} without a Cloudflare challenge");
         }
         var scriptUrl = page.Resolve(scriptMatch.Groups[1].Value).AbsoluteUri;
-        var script = hc.Get(scriptUrl, Headers.ChallengeScript(acceptLanguage, pageUrl + "?__cf_chl_rt_tk=" + tokenMatch.Groups[1].Value));
-        return new CloudflareCall { Html = page.Body, Script = script.Body, ScriptUrl = scriptUrl };
+        var script = hc.Get(scriptUrl, Headers.ChallengeScript(acceptLanguage, page.Url + "?__cf_chl_rt_tk=" + tokenMatch.Groups[1].Value));
+        return (page, new CloudflareCall { Html = page.Body, Script = script.Body, ScriptUrl = scriptUrl });
     }
 
     // Sends each step's requests; each reply goes back on the next call, by its
     // purpose. The form POST sets cf_clearance.
-    private static async Task RunChallengeLoop(HttpClientWrapper hc, Session session, CloudflareCall call)
+    private static async Task RunChallengeLoop(HttpClientWrapper hc, Session session, Response page, CloudflareCall call)
     {
         var step = await session.CloudflareWafAsync(call);
         var frameUrl = "";
@@ -83,7 +83,7 @@ public static class CloudflareWaf
                 {
                     hc.FollowRedirects(false);
                 }
-                var res = hc.Do(r.Method, r.Url, Headers.Cloudflare(r, acceptLanguage, pageUrl, frameUrl), r.Body);
+                var res = hc.Do(r.Method, r.Url, Headers.Cloudflare(r, acceptLanguage, page.Url, frameUrl), r.Body);
                 switch (r.Purpose)
                 {
                     case "challenge":
@@ -112,7 +112,7 @@ public static class CloudflareWaf
                         next.PatStatus = res.Status; // a 4xx is normal
                         break;
                     case "form":
-                        if (hc.Cookie(pageUrl, "cf_clearance") == "")
+                        if (hc.Cookie(page.Url, "cf_clearance") == "")
                         {
                             throw new Exception($"FAIL form POST returned {res.Status} without cf_clearance");
                         }

@@ -1,3 +1,4 @@
+// Header sets and order here come from one Chrome recording; copy yours from a browser recording of each request you make.
 // Sends the examples' target requests with HttpCloak (NuGet): Chrome TLS and
 // HTTP/2 fingerprint, one cookie jar. Also holds Chrome's headers for each kind
 // of request.
@@ -20,8 +21,8 @@ public sealed record Response(int Status, string Url, string Body, byte[] Conten
 
 public sealed class HttpClientWrapper
 {
-    // Chrome 154 on Windows. Every header set in Headers is in Chrome's order; check them against your browser on your site.
-    public const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36";
+    // Chrome 155 on Windows. Every header set in Headers is in Chrome's order; check them against your browser on your site.
+    public const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36";
 
     private readonly HttpCloak.Session session;
 
@@ -29,7 +30,7 @@ public sealed class HttpClientWrapper
     public HttpClientWrapper(string proxy)
     {
         session = new HttpCloak.Session(
-            preset: HttpCloak.Presets.Chrome154Windows,
+            preset: HttpCloak.Presets.Chrome155Windows,
             proxy: proxy == "" ? null : proxy,
             timeout: 30,
             tlsOnly: true,
@@ -39,8 +40,22 @@ public sealed class HttpClientWrapper
     }
 
     /// <summary>The client for <c>GetIpAsync</c>, through the same proxy, so the API sees the IP the target sees.</summary>
-    public static HttpClient IpClient(string proxy) =>
-        proxy == "" ? new HttpClient() : new HttpClient(new HttpClientHandler { Proxy = new WebProxy(proxy) });
+    public static HttpClient IpClient(string proxy)
+    {
+        if (proxy == "")
+        {
+            return new HttpClient();
+        }
+        // WebProxy ignores credentials in the URL, so pass them separately.
+        var uri = new Uri(proxy);
+        var webProxy = new WebProxy(uri.GetLeftPart(UriPartial.Authority));
+        if (uri.UserInfo != "")
+        {
+            var login = uri.UserInfo.Split(':', 2);
+            webProxy.Credentials = new NetworkCredential(Uri.UnescapeDataString(login[0]), Uri.UnescapeDataString(login[1]));
+        }
+        return new HttpClient(new HttpClientHandler { Proxy = webProxy });
+    }
 
     public Response Get(string url, Headers headers) => Do("GET", url, headers, []);
 
@@ -102,12 +117,12 @@ public sealed class HttpClientWrapper
 /// <summary>Headers are sent in this order.</summary>
 public sealed class Headers : List<(string Name, string Value)>
 {
-    private const string SecChUa = "\"Chromium\";v=\"154\", \"Google Chrome\";v=\"154\", \"Not A(Brand\";v=\"99\"";
-    private const string SecChUaFull = "\"Chromium\";v=\"154.0.8037.58\", \"Google Chrome\";v=\"154.0.8037.58\", \"Not A(Brand\";v=\"99.0.0.0\"";
-    private const string SecChUaVersion = "\"154.0.8037.58\"";
+    private const string SecChUa = "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\"";
+    private const string SecChUaFull = "\"Google Chrome\";v=\"155.0.8059.39\", \"Chromium\";v=\"155.0.8059.39\", \"Not(A:Brand\";v=\"24.0.0.0\"";
+    private const string SecChUaVersion = "\"155.0.8059.39\"";
     private const string Platform = "\"Windows\"";
-    private const string AcceptDocument = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7";
-    private const string AcceptImage = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
+    private const string AcceptDocument = "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7";
+    private const string AcceptImage = "image/jxl,image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
     private const string AcceptEncoding = "gzip, deflate, br, zstd";
 
     /// <summary>A top-level page load: referer "" for a typed URL, else a same-origin link.</summary>
@@ -242,6 +257,41 @@ public sealed class Headers : List<(string Name, string Value)>
         ("accept-language", acceptLanguage),
         ("priority", "u=1, i"),
     }.With(kasada);
+
+    /// <summary>The reese84 script, which the challenge page adds as an async script; Chrome sends no priority header for it.</summary>
+    public static Headers ImpervaScript(string acceptLanguage, string referer) => new()
+    {
+        ("sec-ch-ua-platform", Platform),
+        ("user-agent", HttpClientWrapper.UserAgent),
+        ("sec-ch-ua", SecChUa),
+        ("sec-ch-ua-mobile", "?0"),
+        ("accept", "*/*"),
+        ("sec-fetch-site", "same-origin"),
+        ("sec-fetch-mode", "no-cors"),
+        ("sec-fetch-dest", "script"),
+        ("referer", referer),
+        ("accept-encoding", AcceptEncoding),
+        ("accept-language", acceptLanguage),
+    };
+
+    /// <summary>The reese84 POST; the script sets accept and content-type.</summary>
+    public static Headers ImpervaPost(string acceptLanguage, string origin, string referer) => new()
+    {
+        ("sec-ch-ua-platform", Platform),
+        ("user-agent", HttpClientWrapper.UserAgent),
+        ("accept", "application/json; charset=utf-8"),
+        ("sec-ch-ua", SecChUa),
+        ("content-type", "text/plain; charset=utf-8"),
+        ("sec-ch-ua-mobile", "?0"),
+        ("origin", origin),
+        ("sec-fetch-site", "same-origin"),
+        ("sec-fetch-mode", "cors"),
+        ("sec-fetch-dest", "empty"),
+        ("referer", referer),
+        ("accept-encoding", AcceptEncoding),
+        ("accept-language", acceptLanguage),
+        ("priority", "u=1, i"),
+    };
 
     /// <summary>The Cloudflare challenge script. The challenge page asks for every client hint (Accept-CH), so the full set is sent.</summary>
     public static Headers ChallengeScript(string acceptLanguage, string referer) => new()

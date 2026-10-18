@@ -180,6 +180,12 @@ public sealed class KasadaResponse : OneStopResponse
     public IReadOnlyDictionary<string, string> Headers { get; init; } = new Dictionary<string, string>();
 }
 
+/// <summary>The reese84 POST body (JSON text); send it as is.</summary>
+public sealed class ImpervaResponse : OneStopResponse
+{
+    public string Payload { get; init; } = "";
+}
+
 /// <summary>The target requests for one challenge step.</summary>
 public sealed class CloudflareResponse : OneStopResponse
 {
