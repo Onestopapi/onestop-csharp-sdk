@@ -11,6 +11,7 @@ Func<Task>? example = args.FirstOrDefault() switch
     "cloudflare_turnstile" => CloudflareTurnstile.Run,
     "kasada" => Kasada.Run,
     "imperva" => Imperva.Run,
+    "imperva_utmvc" => ImpervaUtmvc.Run,
     _ => null,
 };
 if (example == null)

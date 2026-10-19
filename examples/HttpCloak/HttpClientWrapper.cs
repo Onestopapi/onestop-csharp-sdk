@@ -4,6 +4,7 @@
 // of request.
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using OneStop;
 
 namespace Examples;
@@ -108,6 +109,33 @@ public sealed class HttpClientWrapper
             }
         }
         return "";
+    }
+
+    /// <summary>The cookies stored for the URL whose name starts with prefix, in browser order: longer path first, then oldest first. GetCookies() sorts by name, so the order comes from the session export (Marshal), which keeps each cookie's creation time and creation order.</summary>
+    public List<ImpervaSessionCookie> Cookies(string url, string prefix)
+    {
+        var uri = new Uri(url);
+        using var export = JsonDocument.Parse(session.Marshal());
+        var cookies = new List<(JsonElement Cookie, int Order)>();
+        foreach (var host in export.RootElement.GetProperty("cookies").EnumerateObject())
+        {
+            foreach (var cookie in host.Value.EnumerateArray())
+            {
+                var domain = cookie.GetProperty("domain").GetString()!.TrimStart('.');
+                if (cookie.GetProperty("name").GetString()!.StartsWith(prefix, StringComparison.Ordinal)
+                    && (uri.Host == domain || uri.Host.EndsWith("." + domain))
+                    && uri.AbsolutePath.StartsWith(cookie.GetProperty("path").GetString()!, StringComparison.Ordinal))
+                {
+                    cookies.Add((cookie, cookies.Count));
+                }
+            }
+        }
+        return cookies
+            .OrderByDescending(c => c.Cookie.GetProperty("path").GetString()!.Length)
+            .ThenBy(c => c.Cookie.GetProperty("created_at").GetDateTimeOffset())
+            .ThenBy(c => c.Order)
+            .Select(c => new ImpervaSessionCookie { Name = c.Cookie.GetProperty("name").GetString()!, Value = c.Cookie.GetProperty("value").GetString()! })
+            .ToList();
     }
 
     /// <summary>Stores a cookie for the domain and its subdomains.</summary>

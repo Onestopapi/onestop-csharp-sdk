@@ -135,6 +135,20 @@ public sealed class HttpClientWrapper
         return "";
     }
 
+    /// <summary>The cookies the jar would send to the URL whose name starts with prefix, in browser order: longer path first, then oldest first.</summary>
+    public List<ImpervaSessionCookie> Cookies(string url, string prefix)
+    {
+        var output = new List<ImpervaSessionCookie>();
+        foreach (var c in client.GetCookies(url)!.Cookies ?? [])
+        {
+            if (c.Name.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                output.Add(new ImpervaSessionCookie { Name = c.Name, Value = c.Value });
+            }
+        }
+        return output;
+    }
+
     /// <summary>Stores a cookie for the domain and its subdomains.</summary>
     public void SetCookie(string domain, string name, string value) =>
         client.AddCookies("https://" + domain.TrimStart('.') + "/", [new ClientCookie(name, value)

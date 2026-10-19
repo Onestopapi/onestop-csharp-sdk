@@ -182,6 +182,26 @@ public sealed class Session
             Script = script,
         }, cancellationToken);
 
+    /// <summary>Generates the <c>___utmvc</c> cookie value from the utmvc script's URL and raw source and the page host's <c>incap_ses_*</c> cookies, in browser cookie order.</summary>
+    public Task<ImpervaResponse> ImpervaUtmvcAsync(string scriptUrl, string script, IReadOnlyList<ImpervaSessionCookie> cookies, CancellationToken cancellationToken = default)
+    {
+        if (cookies is null || cookies.Count == 0)
+        {
+            throw new OneStopException("onestop: cookies is required: the page's incap_ses_* cookies");
+        }
+        return Generate<ImpervaResponse>("Imperva", "imperva", new ImpervaUtmvcWire
+        {
+            Site = Wire.Omit(Site),
+            UserAgent = Wire.Omit(UserAgent),
+            AcceptLanguage = Wire.Omit(AcceptLanguage),
+            Ip = Wire.Omit(Ip),
+            Referer = Wire.Omit(Referer),
+            ScriptUrl = scriptUrl,
+            Script = script,
+            IncapSessionCookies = cookies,
+        }, cancellationToken);
+    }
+
     private Task<CloudflareResponse> Cloudflare(string mode, CloudflareCall call, CancellationToken cancellationToken) =>
         Generate<CloudflareResponse>(mode, "cloudflare", new CloudflareWire
         {

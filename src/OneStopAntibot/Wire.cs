@@ -274,3 +274,17 @@ internal sealed class ImpervaWire
     public string ScriptUrl { get; init; } = "";
     public string Script { get; init; } = "";
 }
+
+internal sealed class ImpervaUtmvcWire
+{
+    public string? Site { get; init; }
+    public string? UserAgent { get; init; }
+    public string? AcceptLanguage { get; init; }
+    public string? Ip { get; init; }
+    public string? Referer { get; init; }
+    public string ScriptUrl { get; init; } = "";
+    public string Script { get; init; } = "";
+    // Present selects utmvc; absent selects reese84.
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public IReadOnlyList<ImpervaSessionCookie> IncapSessionCookies { get; init; } = [];
+}

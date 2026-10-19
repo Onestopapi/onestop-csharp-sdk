@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 (2026-10-19)
+
+### Added
+
+- Imperva (utmvc): `await session.ImpervaUtmvcAsync(scriptUrl, script, cookies)` returns `ImpervaResponse`; its payload is the `___utmvc` cookie value. Example: `examples/<client>/imperva_utmvc.cs`.
+
 ## 0.2.0 (2026-10-20)
 
 First NuGet release.

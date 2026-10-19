@@ -119,6 +119,13 @@ public sealed class KasadaCdCall
     public int SubchallengeCount { get; set; }
 }
 
+/// <summary>One <c>incap_ses_*</c> cookie of the page host, with its exact value, for <see cref="Session.ImpervaUtmvcAsync"/>.</summary>
+public sealed class ImpervaSessionCookie
+{
+    public string Name { get; set; } = "";
+    public string Value { get; set; } = "";
+}
+
 public abstract class OneStopResponse
 {
     /// <summary>Identifies the call for support.</summary>
@@ -180,7 +187,7 @@ public sealed class KasadaResponse : OneStopResponse
     public IReadOnlyDictionary<string, string> Headers { get; init; } = new Dictionary<string, string>();
 }
 
-/// <summary>The reese84 POST body (JSON text); send it as is.</summary>
+/// <summary>The reese84 POST body (JSON text), or the <c>___utmvc</c> cookie value; send it as is.</summary>
 public sealed class ImpervaResponse : OneStopResponse
 {
     public string Payload { get; init; } = "";
