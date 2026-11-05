@@ -1,4 +1,4 @@
-// Kasada: load the page and its p.js, then mfc, fp (429) and ips.js, and
+// Kasada: load the page and its p.js, then mfc, fp (200 or 429) and ips.js, and
 // POST the generated /tl body. A page that is already the 429 block page
 // links ips.js itself. /tl answers 200 with reload:true. Then build the
 // x-kpsdk-cd header locally and make one protected POST.
@@ -111,7 +111,7 @@ public static class Kasada
     }
 
     // Loads mfc and fp and returns fp with mfc's x-kpsdk-h, which the
-    // protected requests carry. fp answers 429 with a body that links ips.js.
+    // protected requests carry. fp can answer 200 or 429; require ips.js in its body, not a status.
     private static (Response Fp, string H) GetFp(HttpClientWrapper hc, Response page, string basePath, string version)
     {
         var mfc = hc.Get(basePath + "mfc", Headers.KasadaMfc(acceptLanguage, version, page.Url));
@@ -127,7 +127,7 @@ public static class Kasada
         return (fp, mfc.Header("x-kpsdk-h"));
     }
 
-    // Returns the ips.js src a Kasada 429 body links, HTML-unescaped and
+    // Returns the ips.js src a Kasada response body links, HTML-unescaped and
     // resolved against the response URL.
     private static string IpsUrlFrom(Response res) => res.Resolve(IpsScript.Match(res.Body).Groups[1].Value).AbsoluteUri;
 
