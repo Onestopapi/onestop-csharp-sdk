@@ -126,6 +126,7 @@ public static class DatadomeInterstitial
         // Script and Html are the interstitial's; PageResponse is the blocked page.
         var res = await session.DatadomeInterstitialAsync(new DatadomeInterstitialCall
         {
+            InterstitialBlockUrl = geoUrl,
             Script = script,
             Html = geo.Body,
             PageResponse = page.Body,

@@ -23,7 +23,7 @@ internal static class Wire
         },
     };
 
-    public static string? Omit(string value) => value is "" ? null : value;
+    public static string? Omit(string? value) => value is "" ? null : value;
 
     // Maps are encoded with their keys in Go's order (UTF-8 bytes, not UTF-16 ordinal) at every depth.
     public static object? Sorted(object? value) => value switch
@@ -200,6 +200,7 @@ internal sealed class DatadomeInterstitialWire
     public string? AcceptLanguage { get; init; }
     public string? Ip { get; init; }
     public string? Referer { get; init; }
+    public string? InterstitialBlockUrl { get; init; }
     public string Script { get; init; } = "";
     public string Html { get; init; } = "";
     public string PageResponse { get; init; } = "";
@@ -213,6 +214,8 @@ internal sealed class DatadomeSliderWire
     public string? AcceptLanguage { get; init; }
     public string? Ip { get; init; }
     public string? Referer { get; init; }
+    public string? CaptchaPageUrl { get; init; }
+    public string? ScriptUrl { get; init; }
     public string Script { get; init; } = "";
     public string Html { get; init; } = "";
     public string PageResponse { get; init; } = "";

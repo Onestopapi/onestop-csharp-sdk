@@ -113,10 +113,12 @@ public static class DatadomeSlider
     {
         // Without a script tag the bundle is inline and the API reads it from Html.
         var script = "";
+        var scriptUrl = "";
         var match = CaptchaScript.Match(geo.Body);
         if (match.Success)
         {
-            script = hc.Get(match.Groups[1].Value, Headers.Script(acceptLanguage, "same-site", GeoOrigin + "/").StorageAccess()).Body;
+            scriptUrl = geo.Resolve(match.Groups[1].Value).AbsoluteUri;
+            script = hc.Get(scriptUrl, Headers.Script(acceptLanguage, "same-site", GeoOrigin + "/").StorageAccess()).Body;
         }
 
         // The background is captchaChallengePath (.jpg); the puzzle piece is the
@@ -136,6 +138,8 @@ public static class DatadomeSlider
         // Script and Html are the captcha page's; PageResponse is the blocked page.
         var res = await session.DatadomeSliderAsync(new DatadomeSliderCall
         {
+            CaptchaPageUrl = geoUrl,
+            ScriptUrl = scriptUrl,
             Script = script,
             Html = geo.Body,
             PageResponse = page.Body,

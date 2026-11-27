@@ -18,6 +18,8 @@ public static class Akamai
 
     private const string proxy = ""; // your proxy, in the site's country
 
+    private const int maxSensors = 6;
+
     private static readonly Regex SensorScript = new(@"<script type=""text/javascript""[^>]*src=""([A-Za-z0-9/_-]+)""></script>");
     private static readonly Regex SbsdScript = new(@"<script[^>]*src=""([^""]*\?v=[^""]*)""");
     private static readonly JsonSerializerOptions Json = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
@@ -73,7 +75,12 @@ public static class Akamai
         {
             throw new Exception($"FAIL homepage returned {page.Status} without the sensor and SBSD scripts");
         }
-        return (page.Resolve(sensorMatch.Groups[1].Value), page.Resolve(sbsdMatch.Groups[1].Value));
+        var sbsdUrl = page.Resolve(sbsdMatch.Groups[1].Value);
+        if ((HttpUtility.ParseQueryString(sbsdUrl.Query)["t"] ?? "") != "")
+        {
+            throw new Exception("FAIL SBSD script has t=: a block page, see the sbsd example");
+        }
+        return (page.Resolve(sensorMatch.Groups[1].Value), sbsdUrl);
     }
 
     private static (string Sensor, string Sbsd) GetScripts(HttpClientWrapper hc, Response page, Uri sensorUrl, Uri sbsdUrl)
@@ -125,9 +132,9 @@ public static class Akamai
             {
                 return;
             }
-            if (n == 8)
+            if (n == maxSensors)
             {
-                throw new Exception("FAIL sensor not accepted after 8 POSTs");
+                throw new Exception($"FAIL sensor not accepted after {maxSensors} POSTs");
             }
             call = new AkamaiSensorCall { ScriptUrl = sensorUrl.AbsoluteUri, Context = res.Context };
         }

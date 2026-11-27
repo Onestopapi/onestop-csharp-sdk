@@ -59,6 +59,7 @@ public sealed class DatadomeTagsCall
 
 public sealed class DatadomeInterstitialCall
 {
+    public string? InterstitialBlockUrl { get; set; }
     public string Script { get; set; } = "";
     public string Html { get; set; } = "";
     public string PageResponse { get; set; } = "";
@@ -68,6 +69,8 @@ public sealed class DatadomeInterstitialCall
 /// <summary><see cref="BackgroundImage"/> and <see cref="PuzzlePiece"/> are base64.</summary>
 public sealed class DatadomeSliderCall
 {
+    public string? CaptchaPageUrl { get; set; }
+    public string? ScriptUrl { get; set; }
     public string Script { get; set; } = "";
     public string Html { get; set; } = "";
     public string PageResponse { get; set; } = "";
