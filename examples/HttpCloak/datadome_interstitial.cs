@@ -21,7 +21,9 @@ public static class DatadomeInterstitial
     private const string GeoOrigin = "https://geo.captcha-delivery.com";
 
     private static readonly Regex DdObject = new(@"var\s+dd\s*=\s*(\{[^}]*\})");
-    private static readonly Regex DdScript = new(@"src=""([^""]*interstitial\.[^""]*)""");
+    private static readonly Regex DdScript = new(
+        @"<script\b[^>]*\bsrc\s*=\s*[""']((?:[^""']*/)?(?:interstitial\.[^""']*|[0-9a-f]{16}\.js(?:[?#][^""']*)?))[""']",
+        RegexOptions.IgnoreCase);
 
     private sealed class Challenge
     {
@@ -119,7 +121,7 @@ public static class DatadomeInterstitial
         if (match.Success)
         {
             await Task.Delay(200);
-            script = hc.Get(match.Groups[1].Value, Headers.Script(acceptLanguage, "same-site", GeoOrigin + "/").StorageAccess()).Body;
+            script = hc.Get(geo.Resolve(match.Groups[1].Value).AbsoluteUri, Headers.Script(acceptLanguage, "same-site", GeoOrigin + "/").StorageAccess()).Body;
         }
 
         await Task.Delay(400);
